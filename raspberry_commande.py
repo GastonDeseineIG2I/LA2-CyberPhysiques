@@ -68,10 +68,10 @@ def main():
     
     vp, thetap = position_rot_speed(initial_x, initial_y, target_x, target_y, rad)
     vm_1, vm_2 = commande(vp, thetap)
-    xi1_error = error_calc(xi1_error, vm_1, )
-    xi2_error = error_calc(xi2_error, vm_2, )
+    xi1_error = error_calc(xi1_error, vm_1, 0)
+    xi2_error = error_calc(xi2_error, vm_2, 0)
     
-    print("v1 : ", vp, ", v2 : ", vm_2, ", u1 : ", servo_system(vm_1,xi1_error), ", u2 : ", servo_system(vm_2,xi2_error)
+    print("v1 : ", vp, ", v2 : ", vm_2, ", u1 : ", servo_system(vm_1,xi1_error), ", u2 : ", servo_system(vm_2,xi2_error))
     
     
 main()
