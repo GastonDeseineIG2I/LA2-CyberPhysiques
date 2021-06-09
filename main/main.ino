@@ -1,4 +1,5 @@
 #include "MeMegaPi.h"
+#include <string.h>
 #include <Wire.h>
 #include <TimerFive.h>
 
@@ -64,10 +65,11 @@ void UpdateControl()
     {
       delay(1);
     }
-    String vmc = Serial.readStringUntil('\n');
+    String vmcStr = Serial.readStringUntil('\n');
+    char * vmc = vmcStr.toCharArray();
     // split string to have values
     int i = 0;
-    char *p = strtok(buf, "/");
+    char *p = strtok(vmc, "/");
     char *array[3];
 
     while (p != NULL)
@@ -213,7 +215,7 @@ float servo_system(float vc, float err_int)
 *vc : Vitesse consigne
 *vs : Vitesse sortie
 **/
-float error_calc(xi_error, vc, vs)
+float error_calc(float xi_error,float vc, float vs)
 {
   return xi_error + (vc - vs) * TE;
 }
