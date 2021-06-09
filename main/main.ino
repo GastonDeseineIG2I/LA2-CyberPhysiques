@@ -66,7 +66,8 @@ void UpdateControl()
       delay(1);
     }
     String vmcStr = Serial.readStringUntil('\n');
-    char * vmc = vmcStr.toCharArray();
+    char vmc[255];
+    vmcStr.toCharArray(vmc, vmcStr.length());
     // split string to have values
     int i = 0;
     char *p = strtok(vmc, "/");
