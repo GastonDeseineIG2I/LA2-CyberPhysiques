@@ -8,15 +8,19 @@ import serial
 from marvelmind import MarvelmindHedge
 
 HEDGEID = 54
-GAIN_K = 0.66
-CAPTOR_DISTANCE = 100 # 10cm
-WHEEL_RAY = 35 # 3,5 cm
+#GAIN_K = 0.66
+GAIN_K = 0.2
+#GAIN_K = 0.066
+CAPTOR_DISTANCE = 150
+WHEEL_RADIUS = 0.08
+l = 0.5
+L = -0.1
 
 def main():
 
     target_x = 5
     target_y = 0
-    
+
     ser2 = serial.Serial('/dev/ttyS0', 115200, timeout=1) # Arduino <-> RPI
     ser2.flush()
 
@@ -34,21 +38,29 @@ def main():
                 #hedge.dataEvent.wait(1)
                 #hedge.dataEvent.clear()
 
-                if (hedge.positionUpdated):
-                    position =  getPosition(hedge)
-                    while position[0] != HEDGEID:
-                        position = getPosition(hedge)
-                    result = position[1:4] + [angle]
-                    print('X:{} Y:{} Z:{} θ:{}'.format(result[0], result[1], result[2], result[3]))
+                #if (hedge.positionUpdated):
+                position =  getPosition(hedge)
+                while position[0] != HEDGEID:
+                    position = getPosition(hedge)
+                result = position[1:4] + [angle]
+                print('X:{} Y:{} θ:{}'.format(result[0], result[1],  result[3]))
 
                
-                    speed, rotation_speed = position_rot_speed(float(result[0]), float(result[1]), target_x, target_y, float(angle))
-                    motor_speed_left, motor_speed_right = commande(speed, rotation_speed)
+                #speed, rotation_speed = position_rot_speed(float(result[0])*10, float(result[1])*10, target_x, target_y, float(angle))
+                #linear_speed, rotation_speed = rotation_matrix(float(result[0])*1000, float(result[1])*1000, float(angle))
+                
+                pos_x = float(result[0])
+                pos_y = float(result[1])
+                #ux, uy = correction(pos_x, pos_y, target_x, target_y)
+                ux,uy = correction(pos_x, pos_y, target_x, target_y)
+                linear_speed, rotation_speed = rotation_matrix(ux, uy, float(angle))
+                motor_speed_left, motor_speed_right = command(linear_speed, rotation_speed)
 
-                    print('motor_speed_left:{} motor_speed_right:{}'.format(motor_speed_left, motor_speed_right))
+                print('motor_speed_left:{} motor_speed_right:{}'.format(motor_speed_left*1000, motor_speed_right*1000))
 
-                    serialReturn = str(motor_speed_left) + "/" + str(motor_speed_right) + "\n"
-                    ser2.write(bytes(serialReturn, 'UTF-8'))
+                serialReturn = str(motor_speed_left*1000) + "/" + str(motor_speed_right*1000) + "\n"
+               # serialReturn = "100/0\n"
+                ser2.write(bytes(serialReturn, 'UTF-8'))
 
                     
                 
@@ -74,14 +86,21 @@ def setHedge():
 # target_x : x souhaité
 # target_y : y souhaité
 # theta : angle en rad
-####
-def position_rot_speed(pos_x, pos_y, target_x, target_y, theta):
+###(ux, uy, theta):
+def command(linear_speed, rotation_speed): 
+    v1 = linear_speed - rotation_speed * WHEEL_RADIUS
+    v2 = linear_speed + rotation_speed * WHEEL_RADIUS
+    return v1, v2
+
+def rotation_matrix(ux,uy,theta):
+    linear_speed = ux * cos(theta) + uy*sin(theta)
+    rotation_speed = -(ux * sin(theta)/L) + (uy*cos(theta)/L)
+    return linear_speed,rotation_speed
+
+def correction(pos_x, pos_y, target_x, target_y):
     ux = GAIN_K * (target_x - pos_x)
-    uy = GAIN_K * (target_y - pos_y)
-    rinvx = CAPTOR_DISTANCE * cos(theta) + CAPTOR_DISTANCE * sin(theta)
-    rinvy = -sin(theta) + cos(theta)
-    
-    return rinvx*ux, rinvy*uy
+    uy = GAIN_K * (target_y - pos_y)    
+    return ux, uy 
 
 ####
 # Bloc 2
@@ -89,8 +108,8 @@ def position_rot_speed(pos_x, pos_y, target_x, target_y, theta):
 # rotation_speed : theta°
 ####
 def commande(speed, rotation_speed) :
-    motor_speed_left = speed + rotation_speed * WHEEL_RAY
-    motor_speed_right = speed - rotation_speed * WHEEL_RAY
+    motor_speed_left = speed + rotation_speed * WHEEL_RADIUS
+    motor_speed_right = speed - rotation_speed * WHEEL_RADIUS
     return motor_speed_left, motor_speed_right
 
 
