@@ -20,10 +20,11 @@ def main():
                 # Récuperation de l'angle
                 angle = 0
                 # Récuperation de la position
-                position = getPosition(hedge)
-                while position[0] != HEDGEID:
+                if (hedge.positionUpdated):
                     position = getPosition(hedge)
-                result = position[1:4] + [angle]
+                    while position[0] != HEDGEID:
+                        position = getPosition(hedge)
+                        result = position[1:4] + [angle]
                 print('X:{} Y:{} Z:{} θ:{}'.format(result[0], result[1], result[2], result[3]))
 
         except KeyboardInterrupt:
