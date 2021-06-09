@@ -11,8 +11,8 @@
 #define MAX_VOLTAGE 9                       // max allowed voltage
 
 //-- -- -- -- SLAVE PARAMS
-#define KX 0.0355
-#define KI -0.7862
+#define KX 0.00355
+#define KI -0.07862
 #define TE 0.02
 
 float xi1_error = 0; //Error m1
@@ -20,11 +20,14 @@ float xi2_error = 0; // Error m2
 //-- -- -- --
 
 volatile float angle = 0; //actual heading in deg
+volatile float vm_1 = 0;
+volatile float vm_2 = 0;
 volatile int calc_time = 0;
 volatile float speed1 = 0; //actual speed in mm/s
 volatile float speed2 = 0;
 volatile float ref1 = 0; //actual references from serial
 volatile float ref2 = 0;
+volatile int itr_measure = 0;
 float u1 = 0; // control signals
 float u2 = 0;
 volatile long compTime = 0; // actual computation time of the critical loop
@@ -40,9 +43,15 @@ MeEncoderOnBoard Encoder_2(SLOT2);
 
 void Update5ms()
 {
+  
   calc_time += 5;
+  itr_measure += 5;
   UpdateSensors();
-  UpdateControl();
+  if(itr_measure >= 20)
+  {
+    UpdateControl();
+    itr_measure = 0;
+  }
   UpdateActuators();
 }
 
@@ -50,61 +59,42 @@ void UpdateSensors()
 {
   gyro.update();            // update the gyroscope state
   angle = gyro.getAngleZ(); // get the estimated heading in deg
+
+  if(itr_measure >= 20)
+  {
+    Encoder_1.loop(); // update the encoders state
+    Encoder_2.loop();
+  
+    speed1 = Encoder_1.getCurrentSpeed() * RPM_2_MMS; // compute the speed in mm/s
+    speed2 = Encoder_2.getCurrentSpeed() * RPM_2_MMS; 
+  }
 }
 
 void UpdateControl()
 {
-  // Update FSM every 40ms
-  if (calc_time == 40)
-  {
-    // On donne à la RPI theta
-    Serial2.println(angle);
+  // Lecture de la vitesse du moteur pour lisser la tension
 
-    // On attend que la RPI envoie les vcm
-    while (Serial.available() <= 0)
-    {
-      delay(1);
-    }
-    String vmcStr = Serial.readStringUntil('\n');
-    char vmc[255];
-    vmcStr.toCharArray(vmc, vmcStr.length());
-    // split string to have values
-    int i = 0;
-    char *p = strtok(vmc, "/");
-    char *array[3];
+  vm_1 = 0;
+  vm_2 = 0;
 
-    while (p != NULL)
-    {
-      array[i++] = p;
-      p = strtok(NULL, "/");
-    }
+  // Calcul des erreurs pour chaque moteur
+  xi1_error = error_calc(xi1_error, vm_1, speed1);
+  xi2_error = error_calc(xi2_error, vm_2, speed2);
 
-    float vm_1 = atof(array[0]);
-    float vm_2 = atof(array[1]);
-    //-------------------
+  // Calcul tension
+  u1 = servo_system(speed1, xi1_error);
+  u2 = servo_system(speed2, xi2_error);
+  //u1 = 0;
+  //u2 = 0;
+  //___________________________________
+  
 
-    // Lecture de la vitesse du moteur pour lisser la tension
-    Encoder_1.loop(); // update the encoders state
-    Encoder_2.loop();
-
-    speed1 = Encoder_1.getCurrentSpeed() * RPM_2_MMS; // compute the speed in mm/s
-    speed2 = Encoder_2.getCurrentSpeed() * RPM_2_MMS;
-
-    // Calcul des erreurs pour chaque moteur
-    xi1_error = error_calc(xi1_error, vm_1, speed1);
-    xi2_error = error_calc(xi2_error, vm_2, speed2);
-
-    // Calcul tension
-    u1 = servo_system(vcm_1, xi1_error);
-    u2 = servo_system(vcm_2, xi2_error);
-    //___________________________________
-    calc_time = 0;
-  }
+  
 }
 
 void UpdateActuators()
 {
-  //setMotorsVoltage(u1, u2); // set the voltages
+  setMotorsVoltage(u1, u2); // set the voltages
 }
 /*
 * routine that is called every 5ms by the timer 5
@@ -193,6 +183,7 @@ void setup()
   Serial.begin(115200);
   Serial2.begin(115200);
   Serial.setTimeout(1);
+  Serial2.setTimeout(1);
   gyro.begin();
   Wire.setClock(400000);
   setupMotors();
@@ -205,9 +196,9 @@ void setup()
 *vc : Vitesse consigne
 *err_int : Intégrale de l'erreur
 **/
-float servo_system(float vc, float err_int)
+float servo_system(float vs, float err_int)
 {
-  return -KX * vc - KI * err_int;
+  return -KX * vs - KI * err_int;
 }
 
 /**
@@ -225,10 +216,14 @@ void loop()
 {
   static float lastRef1 = 0;
   static float lastRef2 = 0;
+  static float lastvm1 = 0;
+  static float lastvm2 = 0;
 
   noInterrupts();
   ref1 = lastRef1;
   ref2 = lastRef2;
+  vm_1 = lastvm1;
+  vm_2 = lastvm2;
   float angleCopy = angle;
   float speed1Copy = speed1;
   float speed2Copy = speed2;
@@ -239,34 +234,39 @@ void loop()
   // On donne x,y,theta,vistesse actuelle
 
   // lecture RPI
-  xi1_error = error_calc(xi1_error, vm_1, 0);
-  xi2_error = error_calc(xi2_error, vm_2, 0);
-  float vcm_1 = 2; // Vitesse consigne moteur 1 lu de la RPI / calculé avec x,y,theta
-  float vcm_2 = 2; // Vitesse consigne moteur 2 lu de la RPI / calculé avec x,y,theta
+  //xi1_error = error_calc(xi1_error, vm_1, 0);
+  //xi2_error = error_calc(xi2_error, vm_2, 0);
+  //float vcm_1 = 2; // Vitesse consigne moteur 1 lu de la RPI / calculé avec x,y,theta
+  //float vcm_2 = 2; // Vitesse consigne moteur 2 lu de la RPI / calculé avec x,y,theta
 
-  float m1_u = servo_system(vcm_1, xi1_error);
-  float m2_u = servo_system(vcm_2, xi2_error);
+  //float m1_u = servo_system(vcm_1, xi1_error);
+  //float m2_u = servo_system(vcm_2, xi2_error);
 
-  Serial.print(" compTime: ");
-  Serial.print(compTimeCopy);
+  //Serial.print(" compTime: ");
+  //Serial.print(compTimeCopy);
 
-  Serial.print(" overrun: ");
-  Serial.print(overrun);
+  //Serial.print(" overrun: ");
+  //Serial.print(overrun);
 
-  Serial.print(" speed1: ");
-  Serial.print(speed1Copy);
+  //Serial.print(" speed1: ");
+ // Serial.print(speed1Copy);
 
-  Serial.print(" speed2: ");
-  Serial.print(speed2Copy);
+ // Serial.print(" speed2: ");
+ // Serial.print(speed2Copy);
 
   Serial.print(" angle: ");
   Serial.print(angleCopy);
 
-  Serial.print(" ref1: ");
-  Serial.print(ref1);
+  Serial.print(" u1: ");
+  Serial.print(u1);
 
-  Serial.print(" ref2: ");
-  Serial.print(ref2);
+
+
+//  Serial.print(" ref1: ");
+ // Serial.print(ref1);
+
+  //Serial.print(" ref2: ");
+  //Serial.print(ref2);
 
   Serial.println();
 
@@ -274,6 +274,40 @@ void loop()
   {
     lastRef1 = Serial.parseFloat();
     lastRef2 = Serial.parseFloat();
+  }
+
+  
+  Serial2.println(angleCopy);
+
+  // Update FSM every 40ms
+  if (calc_time >= 40)
+  {
+
+    // On attend que la RPI envoie les vcm
+    //while (Serial2.available() <= 0)
+    //{
+    //  Serial.println(calc_time);
+    //  delay(1);
+    //}
+    String vmcStr = Serial2.readStringUntil('\n');
+    Serial.println(vmcStr);
+    char vmc[255];
+    vmcStr.toCharArray(vmc, vmcStr.length());
+    // split string to have values
+    int i = 0;
+    char *p = strtok(vmc, "/");
+    char *array[3];
+
+    while (p != NULL)
+    {
+      array[i++] = p;
+      p = strtok(NULL, "/");
+    }
+
+  lastvm1 = atof(array[0]); // cast string
+  lastvm2 = atof(array[1]);
+    
+    calc_time = 0;
   }
   delay(10);
 }
