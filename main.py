@@ -28,7 +28,7 @@ def main():
                 angle  = ser2.readline().decode('utf-8').rstrip()
 
                 # Angle en radian
-                angle = angle * pi / 180
+                angle = float(angle) * pi / 180
 
                 # Récuperation de la position
                 #hedge.dataEvent.wait(1)
@@ -42,7 +42,7 @@ def main():
                     print('X:{} Y:{} Z:{} θ:{}'.format(result[0], result[1], result[2], result[3]))
 
                
-                    speed, rotation_speed = position_rot_speed(result[0], result[1], target_x, target_y, angle)
+                    speed, rotation_speed = position_rot_speed(float(result[0]), float(result[1]), target_x, target_y, float(angle))
                     motor_speed_left, motor_speed_right = commande(speed, rotation_speed)
 
                     print('motor_speed_left:{} motor_speed_right:{}'.format(motor_speed_left, motor_speed_right))
