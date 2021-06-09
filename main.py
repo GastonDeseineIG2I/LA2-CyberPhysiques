@@ -5,12 +5,16 @@
 from time import sleep
 import sys
 import serial
+import time
 from marvelmind import MarvelmindHedge
 
 HEDGEID = 54
 
 def main():
-    ser = serial.Serial2('/dev/ttyS0', 115200, timeout=1)
+    ser2 = serial.Serial2('/dev/ttyS0', 115200, timeout=1)
+    ser2.flush()
+
+    ser = serial.Serial('/dev/ttyS0', 115200, timeout=1)
     ser.flush()
 
     hedge = setHedge()
@@ -30,6 +34,11 @@ def main():
                         position = getPosition(hedge)
                     result = position[1:4] + [angle]
                     print('X:{} Y:{} Z:{} θ:{}'.format(result[0], result[1], result[2], result[3]))
+
+               
+                    ser.write(b"2/-2\n")
+                    line = ser.readline().decode('utf-8').rstrip()
+                    time.sleep(1)
                 
 
         except KeyboardInterrupt:
