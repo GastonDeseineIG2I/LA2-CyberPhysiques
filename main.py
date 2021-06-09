@@ -47,7 +47,7 @@ def main():
 
                     print('motor_speed_left:{} motor_speed_right:{}'.format(motor_speed_left, motor_speed_right))
 
-                    serialReturn = motor_speed_left + "/" + motor_speed_right + "\n"
+                    serialReturn = str(motor_speed_left) + "/" + str(motor_speed_right) + "\n"
                     ser2.write(bytes(serialReturn, 'UTF-8'))
 
                     
