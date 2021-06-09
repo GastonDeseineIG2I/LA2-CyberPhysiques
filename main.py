@@ -10,7 +10,7 @@ from marvelmind import MarvelmindHedge
 HEDGEID = 54
 
 def main():
-    ser = serial.Serial('/dev/ttyS0', 115200, timeout=1)
+    ser = serial.Serial2('/dev/ttyS0', 115200, timeout=1)
     ser.flush()
 
     hedge = setHedge()
@@ -18,7 +18,8 @@ def main():
         try:
             if ser.in_waiting > 0:
                 # Récuperation de l'angle
-                angle = 0
+                angle  = ser.readline().decode('utf-8').rstrip()
+
                 # Récuperation de la position
                 hedge.dataEvent.wait(1)
                 hedge.dataEvent.clear()
