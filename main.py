@@ -24,9 +24,10 @@ def main():
                 hedge.dataEvent.clear()
 
                 if (hedge.positionUpdated):
-                    hedge.print_position()
                     position =  getPosition(hedge)
-                    result = position[0:3] + [angle]
+                    while position[0] != HEDGEID:
+                        position = getPosition(hedge)
+                    result = position[1:4] + [angle]
                     print('X:{} Y:{} Z:{} θ:{}'.format(result[0], result[1], result[2], result[3]))
                 
 
