@@ -11,8 +11,10 @@
 #define MAX_VOLTAGE 9                       // max allowed voltage
 
 //-- -- -- -- SLAVE PARAMS
-#define KX 0.00355
-#define KI -0.07862
+// #define KX 0.00355
+// #define KI -0.07862
+#define KX 0.0238
+#define KI -0.7534
 #define TE 0.02
 
 float xi1_error = 0; //Error m1
