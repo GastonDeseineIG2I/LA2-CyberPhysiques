@@ -11,10 +11,13 @@
 #define MAX_VOLTAGE 9                       // max allowed voltage
 
 //-- -- -- -- SLAVE PARAMS
-// #define KX 0.00355
-// #define KI -0.07862
-#define KX 0.0238
-#define KI -0.7534
+
+#define KX 0.01//0.0238
+#define KI -0.3//-0.7534
+
+//#define KX 0.0274
+//#define KI -0.8647
+
 #define TE 0.02
 
 float xi1_error = 0; //Error m1
@@ -76,11 +79,12 @@ void UpdateControl()
 {
   // Lecture de la vitesse du moteur pour lisser la tension
 
-  vm_1 = 0;
-  vm_2 = 0;
-
+  //vm_1, vm_2 = 0;
+  
+//vm_1=0;
+//vm_2=100;
   // Calcul des erreurs pour chaque moteur
-  xi1_error = error_calc(xi1_error, vm_1, speed1);
+  xi1_error = error_calc(xi1_error, -vm_1, speed1);
   xi2_error = error_calc(xi2_error, vm_2, speed2);
 
   // Calcul tension
@@ -247,8 +251,8 @@ void loop()
   //Serial.print(" compTime: ");
   //Serial.print(compTimeCopy);
 
-  //Serial.print(" overrun: ");
-  //Serial.print(overrun);
+  Serial.print(" overrun: ");
+  Serial.print(overrun);
 
   //Serial.print(" speed1: ");
  // Serial.print(speed1Copy);
@@ -262,6 +266,12 @@ void loop()
   Serial.print(" u1: ");
   Serial.print(u1);
 
+  
+  Serial.print(" u2: ");
+  Serial.print(u2);
+
+Serial.print(" s2: ");
+  Serial.print(speed2Copy);
 
 
 //  Serial.print(" ref1: ");
@@ -280,17 +290,9 @@ void loop()
 
   
   Serial2.println(angleCopy);
-
-  // Update FSM every 40ms
-  if (calc_time >= 40)
-  {
-
-    // On attend que la RPI envoie les vcm
-    //while (Serial2.available() <= 0)
-    //{
-    //  Serial.println(calc_time);
-    //  delay(1);
-    //}
+  
+  if (Serial2.available())
+    {
     String vmcStr = Serial2.readStringUntil('\n');
     Serial.println(vmcStr);
     char vmc[255];
@@ -305,11 +307,27 @@ void loop()
       array[i++] = p;
       p = strtok(NULL, "/");
     }
+  
 
-  lastvm1 = atof(array[0]); // cast string
-  lastvm2 = atof(array[1]);
+    // Update FSM every 40ms
+    if (calc_time >= 40)
+    {
     
-    calc_time = 0;
-  }
+
+      // On attend que la RPI envoie les vcm
+      //while (Serial2.available() <= 0)
+      //{
+      //  Serial.println(calc_time);
+      //  delay(1);
+      //}
+    
+
+      lastvm1 = atof(array[0]); // cast string
+      lastvm2 = atof(array[1]);
+    
+      calc_time = 0;
+     }
+   }
+  
   delay(10);
 }
