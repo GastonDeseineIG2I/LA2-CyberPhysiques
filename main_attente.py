@@ -1,4 +1,5 @@
 from math import *
+import serial
 
 GAIN_K = 0.66
 CAPTOR_DISTANCE = 100 # 10cm
@@ -30,23 +31,15 @@ def commande(speed, rotation_speed) :
     motor_speed_right = speed - rotation_speed * WHEEL_RAY
     return motor_speed_left, motor_speed_right
 
-def main():
-    initial_x = 3
-    initial_y = 3
-    
-    target_x = 6
-    target_y = 7
-    
-    rad = 2
-    xi1_error = 0
-    xi2_error = 0
 
-    vp, thetap = position_rot_speed(initial_x, initial_y, target_x, target_y, rad)
-    vm_1, vm_2 = commande(vp, thetap)
-    xi1_error = error_calc(xi1_error, vm_1, 0)
-    xi2_error = error_calc(xi2_error, vm_2, 0)
-    
-    print("v1 : ", vp, ", v2 : ", vm_2, ", u1 : ", servo_system(vm_1,xi1_error), ", u2 : ", servo_system(vm_2,xi2_error))
-    
-    
-main()
+def main():
+    while True:
+        
+
+
+    ser = serial.Serial('/dev/ttyS0',115200, timeout=1)
+    ser.flush()
+    while True:
+        if ser.in_waiting > 0:
+            line = ser.readline().decode('utf-8').rstrip()
+            print(line)

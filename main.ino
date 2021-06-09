@@ -18,7 +18,8 @@ float xi1_error = 0; //Error m1
 float xi2_error = 0; // Error m2
 //-- -- -- --
 
-volatile float angle = 0;  //actual heading in deg
+volatile float angle = 0; //actual heading in deg
+volatile int calc_time = 0;
 volatile float speed1 = 0; //actual speed in mm/s
 volatile float speed2 = 0;
 volatile float ref1 = 0; //actual references from serial
@@ -38,6 +39,7 @@ MeEncoderOnBoard Encoder_2(SLOT2);
 
 void Update5ms()
 {
+  calc_time += 5;
   UpdateSensors();
   UpdateControl();
   UpdateActuators();
@@ -47,25 +49,59 @@ void UpdateSensors()
 {
   gyro.update();            // update the gyroscope state
   angle = gyro.getAngleZ(); // get the estimated heading in deg
-
-  Encoder_1.loop(); // update the encoders state
-  Encoder_2.loop();
-
-  speed1 = Encoder_1.getCurrentSpeed() * RPM_2_MMS; // compute the speed in mm/s
-  speed2 = Encoder_2.getCurrentSpeed() * RPM_2_MMS;
 }
 
 void UpdateControl()
 {
-  // Update FSM
+  // Update FSM every 40ms
+  if (calc_time == 40)
+  {
+    // On donne à la RPI theta
+    Serial2.println(angle);
 
-  u1 = 3;
-  u2 = 4;
+    // On attend que la RPI envoie les vcm
+    while (Serial.available() <= 0)
+    {
+      delay(1);
+    }
+    String vmc = Serial.readStringUntil('\n');
+    // split string to have values
+    int i = 0;
+    char *p = strtok(buf, "/");
+    char *array[3];
+
+    while (p != NULL)
+    {
+      array[i++] = p;
+      p = strtok(NULL, "/");
+    }
+
+    float vm_1 = atof(array[0]);
+    float vm_2 = atof(array[1]);
+    //-------------------
+
+    // Lecture de la vitesse du moteur pour lisser la tension
+    Encoder_1.loop(); // update the encoders state
+    Encoder_2.loop();
+
+    speed1 = Encoder_1.getCurrentSpeed() * RPM_2_MMS; // compute the speed in mm/s
+    speed2 = Encoder_2.getCurrentSpeed() * RPM_2_MMS;
+
+    // Calcul des erreurs pour chaque moteur
+    xi1_error = error_calc(xi1_error, vm_1, speed1);
+    xi2_error = error_calc(xi2_error, vm_2, speed2);
+
+    // Calcul tension
+    u1 = servo_system(vcm_1, xi1_error);
+    u2 = servo_system(vcm_2, xi2_error);
+    //___________________________________
+    calc_time = 0;
+  }
 }
 
 void UpdateActuators()
 {
-  setMotorsVoltage(u1, u2); // set the voltages
+  //setMotorsVoltage(u1, u2); // set the voltages
 }
 /*
 * routine that is called every 5ms by the timer 5
@@ -152,6 +188,7 @@ void setMotorsVoltage(float voltage1, float voltage2)
 void setup()
 {
   Serial.begin(115200);
+  Serial2.begin(115200);
   Serial.setTimeout(1);
   gyro.begin();
   Wire.setClock(400000);
@@ -201,8 +238,8 @@ void loop()
   // lecture RPI
   xi1_error = error_calc(xi1_error, vm_1, 0);
   xi2_error = error_calc(xi2_error, vm_2, 0);
-  float vcm_1 = 2; // Vitesse consigne  from RPI / calculé avec x,y,theta
-  float vcm_2 = 2; // Vitesse voteur lu de la RPI / calculé avec x,y,theta
+  float vcm_1 = 2; // Vitesse consigne moteur 1 lu de la RPI / calculé avec x,y,theta
+  float vcm_2 = 2; // Vitesse consigne moteur 2 lu de la RPI / calculé avec x,y,theta
 
   float m1_u = servo_system(vcm_1, xi1_error);
   float m2_u = servo_system(vcm_2, xi2_error);
