@@ -20,12 +20,15 @@ def main():
                 # Récuperation de l'angle
                 angle = 0
                 # Récuperation de la position
+                hedge.dataEvent.wait(1)
+                hedge.dataEvent.clear()
+
                 if (hedge.positionUpdated):
-                    position = getPosition(hedge)
-                    while position[0] != HEDGEID:
-                        position = getPosition(hedge)
-                        result = position[1:4] + [angle]
-                        print('X:{} Y:{} Z:{} θ:{}'.format(result[0], result[1], result[2], result[3]))
+                    hedge.print_position()
+                    position =  getPosition(hedge)
+                    result = position[0:3] + [angle]
+                    print('X:{} Y:{} Z:{} θ:{}'.format(result[0], result[1], result[2], result[3]))
+                
 
         except KeyboardInterrupt:
             hedge.stop()  # stop and close serial port
