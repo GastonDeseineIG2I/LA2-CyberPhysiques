@@ -44,14 +44,10 @@ def main():
                     position = getPosition(hedge)
                 result = position[1:4] + [angle]
                 print('X:{} Y:{} θ:{}'.format(result[0], result[1],  result[3]))
-
-               
-                #speed, rotation_speed = position_rot_speed(float(result[0])*10, float(result[1])*10, target_x, target_y, float(angle))
-                #linear_speed, rotation_speed = rotation_matrix(float(result[0])*1000, float(result[1])*1000, float(angle))
                 
                 pos_x = float(result[0])
                 pos_y = float(result[1])
-                #ux, uy = correction(pos_x, pos_y, target_x, target_y)
+
                 ux,uy = correction(pos_x, pos_y, target_x, target_y)
                 linear_speed, rotation_speed = rotation_matrix(ux, uy, float(angle))
                 motor_speed_left, motor_speed_right = command(linear_speed, rotation_speed)
@@ -80,23 +76,30 @@ def setHedge():
 
 
 ####
-# Bloc 1 (cf. CR)
-# pos_x : Position en x
-# pos_y : Position en y
-# target_x : x souhaité
-# target_y : y souhaité
-# theta : angle en rad
-###(ux, uy, theta):
+# Bloc 2
+# speed : v°
+# rotation_speed : theta°
+###
 def command(linear_speed, rotation_speed): 
     v1 = linear_speed - rotation_speed * WHEEL_RADIUS
     v2 = linear_speed + rotation_speed * WHEEL_RADIUS
     return v1, v2
 
+####
+# Bloc 1.2
+# speed : v°
+# rotation_speed : theta°
+###
 def rotation_matrix(ux,uy,theta):
     linear_speed = ux * cos(theta) + uy*sin(theta)
     rotation_speed = -(ux * sin(theta)/L) + (uy*cos(theta)/L)
     return linear_speed,rotation_speed
 
+####
+# Bloc 1.1
+# speed : v°
+# rotation_speed : theta°
+###
 def correction(pos_x, pos_y, target_x, target_y):
     ux = GAIN_K * (target_x - pos_x)
     uy = GAIN_K * (target_y - pos_y)    
