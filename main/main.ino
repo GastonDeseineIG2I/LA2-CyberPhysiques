@@ -77,12 +77,6 @@ void UpdateSensors()
 
 void UpdateControl()
 {
-  // Lecture de la vitesse du moteur pour lisser la tension
-
-  //vm_1, vm_2 = 0;
-  
-//vm_1=0;
-//vm_2=100;
   // Calcul des erreurs pour chaque moteur
   xi1_error = error_calc(xi1_error, -vm_1, speed1);
   xi2_error = error_calc(xi2_error, vm_2, speed2);
@@ -90,8 +84,6 @@ void UpdateControl()
   // Calcul tension
   u1 = servo_system(speed1, xi1_error);
   u2 = servo_system(speed2, xi2_error);
-  //u1 = 0;
-  //u2 = 0;
   //___________________________________
   
 
@@ -236,49 +228,22 @@ void loop()
   long compTimeCopy = compTime;
   interrupts();
 
-  // écriture RPI
-  // On donne x,y,theta,vistesse actuelle
-
-  // lecture RPI
-  //xi1_error = error_calc(xi1_error, vm_1, 0);
-  //xi2_error = error_calc(xi2_error, vm_2, 0);
-  //float vcm_1 = 2; // Vitesse consigne moteur 1 lu de la RPI / calculé avec x,y,theta
-  //float vcm_2 = 2; // Vitesse consigne moteur 2 lu de la RPI / calculé avec x,y,theta
-
-  //float m1_u = servo_system(vcm_1, xi1_error);
-  //float m2_u = servo_system(vcm_2, xi2_error);
-
-  //Serial.print(" compTime: ");
-  //Serial.print(compTimeCopy);
+  //---------------------------
 
   Serial.print(" overrun: ");
   Serial.print(overrun);
-
-  //Serial.print(" speed1: ");
- // Serial.print(speed1Copy);
-
- // Serial.print(" speed2: ");
- // Serial.print(speed2Copy);
 
   Serial.print(" angle: ");
   Serial.print(angleCopy);
 
   Serial.print(" u1: ");
   Serial.print(u1);
-
   
   Serial.print(" u2: ");
   Serial.print(u2);
 
-Serial.print(" s2: ");
+  Serial.print(" s2: ");
   Serial.print(speed2Copy);
-
-
-//  Serial.print(" ref1: ");
- // Serial.print(ref1);
-
-  //Serial.print(" ref2: ");
-  //Serial.print(ref2);
 
   Serial.println();
 
@@ -287,7 +252,6 @@ Serial.print(" s2: ");
     lastRef1 = Serial.parseFloat();
     lastRef2 = Serial.parseFloat();
   }
-
   
   Serial2.println(angleCopy);
   
@@ -312,16 +276,6 @@ Serial.print(" s2: ");
     // Update FSM every 40ms
     if (calc_time >= 40)
     {
-    
-
-      // On attend que la RPI envoie les vcm
-      //while (Serial2.available() <= 0)
-      //{
-      //  Serial.println(calc_time);
-      //  delay(1);
-      //}
-    
-
       lastvm1 = atof(array[0]); // cast string
       lastvm2 = atof(array[1]);
     
