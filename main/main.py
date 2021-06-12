@@ -103,17 +103,6 @@ def rotation_matrix(ux,uy,theta):
 def correction(pos_x, pos_y, target_x, target_y):
     ux = GAIN_K * (target_x - pos_x)
     uy = GAIN_K * (target_y - pos_y)    
-    return ux, uy 
-
-####
-# Bloc 2
-# speed : v°
-# rotation_speed : theta°
-####
-def commande(speed, rotation_speed) :
-    motor_speed_left = speed + rotation_speed * WHEEL_RADIUS
-    motor_speed_right = speed - rotation_speed * WHEEL_RADIUS
-    return motor_speed_left, motor_speed_right
-
+    return ux, uy
 
 main()
